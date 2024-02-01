@@ -54,7 +54,7 @@ class InternLM_LLM(LLM):
 def load_chain(model,tokenizer):
     # 加载问答链
     # 定义 Embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="./model/sentence-transformer")
+    embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
 
     with open("./rag_datasets/combine.txt") as f:
         docs = f.read()
@@ -125,11 +125,11 @@ def on_btn_click():
 @st.cache_resource
 def load_model():
     model = (
-        AutoModelForCausalLM.from_pretrained("./model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
+        AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
         .to(torch.bfloat16)
         .cuda()
     )
-    tokenizer = AutoTokenizer.from_pretrained("./model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
     return model, tokenizer
 
 
