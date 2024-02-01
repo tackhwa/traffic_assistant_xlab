@@ -21,7 +21,7 @@ from langchain.chains import LLMChain
 from langchain.vectorstores import Chroma
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
-os.system("python model_download.py")
+
 # os.system("python create_db.py")
 
 
