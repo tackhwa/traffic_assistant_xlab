@@ -56,7 +56,7 @@ def load_chain(model,tokenizer):
     # 定义 Embeddings
     embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
 
-    with open("./rag_datasets/combine.txt") as f:
+    with open("/home/xlab-app-center/data_base/vector_db/rag_datasets/combine.txt") as f:
         docs = f.read()
 
     text_splitter = RecursiveCharacterTextSplitter(
@@ -68,7 +68,7 @@ def load_chain(model,tokenizer):
     bm25_retriever.k =  2
 
     # 向量数据库持久化路径
-    persist_directory = './data_base/vector_db/rag_datasets'
+    persist_directory = '/home/xlab-app-center/data_base/vector_db/rag_datasets'
 
     # 加载数据库
     vectordb = Chroma(
@@ -100,7 +100,7 @@ def load_chain(model,tokenizer):
 
     llm_chain = LLMChain(llm=llm, prompt=QUERY_PROMPT, output_parser=output_parser)
 
-    multi_retriever = MultiQueryRetriever(retriever=ensemble_retriever, llm_chain=llm_chain)
+    multi_retriever = MultiQueryRetriever(retriever=ensemble_retriever, llm_chain=llm_chain,include_original=True)
 
     # 定义一个 Prompt Template
     template = """使用以下上下文来回答最后的问题。如果你不知道答案，就说你不知道，不要试图编造答
