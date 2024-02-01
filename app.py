@@ -89,9 +89,9 @@ def load_chain(model,tokenizer):
         以便从矢量数据库中检索相关文档。通过对用户问题生成多种观点，
         你的目标是帮助用户克服基于距离的相似性搜索的一些局限性。
         以以下形式输出提问，
-        1：提问1，
-        2：额外提问1，
-        3：额外提问2，
+        1：额外提问1，
+        2：额外提问2，
+        3：额外提问3，
         原本的用户提问： {question}""",
     )
 
@@ -175,8 +175,8 @@ def main():
     qa_chain=load_chain(model, tokenizer)
     print("load model end.")
 
-    user_avator = "./imgs/user.png"
-    robot_avator = "./imgs/robot.png"
+    user_avator = "/home/xlab-app-center/imgs/user.png"
+    robot_avator = "/home/xlab-app-center/imgs/robot.png"
 
     st.title("traffic-assistant")
 
