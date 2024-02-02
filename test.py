@@ -51,24 +51,28 @@ def prepare_generation_config():
     return generation_config
 
 
-user_prompt = "<|User|>:{user}\n"
-robot_prompt = "<|Bot|>:{robot}<eoa>\n"
-cur_query_prompt = "<|User|>:{user}<eoh>\n<|Bot|>:"
+user_prompt = '<|im_start|>user\n{user}<|im_end|>\n'
+robot_prompt = '<|im_start|>assistant\n{robot}<|im_end|>\n'
+cur_query_prompt = '<|im_start|>user\n{user}<|im_end|>\n\
+    <|im_start|>assistant\n'
 
 
 def combine_history(prompt):
     messages = st.session_state.messages
-    total_prompt = ""
+    meta_instruction = ('You are InternLM (书生·浦语), a helpful, honest, '
+                        'and harmless AI assistant developed by Shanghai '
+                        'AI Laboratory (上海人工智能实验室).')
+    total_prompt = f"<s><|im_start|>system\n{meta_instruction}<|im_end|>\n"
     for message in messages:
-        cur_content = message["content"]
-        if message["role"] == "user":
-            cur_prompt = user_prompt.replace("{user}", cur_content)
-        elif message["role"] == "robot":
-            cur_prompt = robot_prompt.replace("{robot}", cur_content)
+        cur_content = message['content']
+        if message['role'] == 'user':
+            cur_prompt = user_prompt.format(user=cur_content)
+        elif message['role'] == 'robot':
+            cur_prompt = robot_prompt.format(robot=cur_content)
         else:
             raise RuntimeError
         total_prompt += cur_prompt
-    total_prompt = total_prompt + cur_query_prompt.replace("{user}", prompt)
+    total_prompt = total_prompt + cur_query_prompt.format(user=prompt)
     return total_prompt
 
 
