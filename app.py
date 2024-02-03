@@ -14,7 +14,7 @@ from dataclasses import asdict
 
 import streamlit as st
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from modelscope import AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import logging
 from langchain.llms.base import LLM
 from typing import Any, List, Optional
