@@ -32,7 +32,6 @@ from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 logger = logging.get_logger(__name__)
 
 
-
 class InternLM_LLM(LLM):
     tokenizer: AutoTokenizer = None
     model: AutoModelForCausalLM = None
@@ -118,11 +117,11 @@ def on_btn_click():
 @st.cache_resource
 def load_model():
     model = (
-        AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
+        AutoModelForCausalLM.from_pretrained("LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
         .to(torch.bfloat16)
         .cuda()
     )
-    tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
     return model, tokenizer
 
 
