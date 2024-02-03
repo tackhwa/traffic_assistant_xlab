@@ -6,7 +6,10 @@ Please refer to these links below for more information:
     2. chatglm2: https://github.com/THUDM/ChatGLM2-6B
     3. transformers: https://github.com/huggingface/transformers
 """
+__import__('pysqlite3')
+import sys
 
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from dataclasses import asdict
 
 import streamlit as st
