@@ -36,12 +36,12 @@ logger = logging.get_logger(__name__)
 class InternLM_LLM(LLM):
     tokenizer: AutoTokenizer = None
     model: AutoModelForCausalLM = None
-    def __init__(self,model,tokenizer):
+    def __init__(self,model_path: str):
         # model_path: InternLM 模型路径
         # 从本地初始化模型
         super().__init__()
-        self.tokenizer=tokenizer
-        self.model=model
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True).to(torch.bfloat16).cuda()
         self.model = self.model.eval()
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None,
@@ -143,7 +143,9 @@ def main():
                                        weights=[0.4, 0.6])
     
     # 加载自定义 LLM
-    llm = InternLM_LLM(model,tokenizer)
+    # llm = InternLM_LLM(model,tokenizer)
+
+    llm = InternLM_LLM("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2")
 
     # 定义一个 Prompt Template
     template = """使用以下上下文来回答最后的问题。如果你不知道答案，就说你不知道，不要试图编造答
