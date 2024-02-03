@@ -174,7 +174,7 @@ def main():
     user_avator = "./imgs/user.png"
     robot_avator = "./imgs/robot.png"
 
-    st.title("traffic-assistant")
+    st.title("TRLLM-v2-W4A16-交通规则助手大语言模型")
 
     enable_rag = prepare_generation_config()
 
