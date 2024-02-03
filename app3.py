@@ -84,7 +84,6 @@ def main():
     # torch.cuda.empty_cache()
     print("load model begin.")
     model, tokenizer = load_model()
-    qa_chain=load_chain(model, tokenizer)
     print("load model end.")
 
     user_avator = "./imgs/user.png"
