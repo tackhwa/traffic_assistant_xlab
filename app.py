@@ -1,8 +1,14 @@
-__import__('pysqlite3')
-import sys
-import os
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+"""
+This script refers to the dialogue example of streamlit, the interactive generation code of chatglm2 and transformers.
+We mainly modified part of the code logic to adapt to the generation of our model.
+Please refer to these links below for more information:
+    1. streamlit chat example: https://docs.streamlit.io/knowledge-base/tutorials/build-conversational-apps
+    2. chatglm2: https://github.com/THUDM/ChatGLM2-6B
+    3. transformers: https://github.com/huggingface/transformers
+"""
+
 from dataclasses import asdict
+
 import streamlit as st
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -11,18 +17,17 @@ from langchain.llms.base import LLM
 from typing import Any, List, Optional
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from tools.transformers.interface import GenerationConfig, generate_interactive
+
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from OutputParser import LineListOutputParser
 from langchain.chains import LLMChain
 from langchain.vectorstores import Chroma
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
+logger = logging.get_logger(__name__)
 
-# os.system("python create_db.py")
 
 
 class InternLM_LLM(LLM):
@@ -54,9 +59,9 @@ class InternLM_LLM(LLM):
 def load_chain(model,tokenizer):
     # 加载问答链
     # 定义 Embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
+    embeddings = HuggingFaceEmbeddings(model_name="./model/sentence-transformer")
 
-    with open("/home/xlab-app-center/data_base/vector_db/rag_datasets/combine.txt") as f:
+    with open("./data_base/combine.txt") as f:
         docs = f.read()
 
     text_splitter = RecursiveCharacterTextSplitter(
@@ -68,7 +73,7 @@ def load_chain(model,tokenizer):
     bm25_retriever.k =  2
 
     # 向量数据库持久化路径
-    persist_directory = '/home/xlab-app-center/data_base/vector_db/rag_datasets'
+    persist_directory = './data_base/vector_db/rag_datasets'
 
     # 加载数据库
     vectordb = Chroma(
@@ -81,30 +86,15 @@ def load_chain(model,tokenizer):
     ensemble_retriever = EnsembleRetriever(retrievers=[bm25_retriever, retriever_chroma],
                                        weights=[0.4, 0.6])
     
-    output_parser = LineListOutputParser()
 
-    QUERY_PROMPT = PromptTemplate(
-        input_variables=["question"],
-        template="""你是一名人工智能语言模型助理。您的任务是基于给定用户提问生成额外三个尽可能短的不同版本的提问，
-        以便从矢量数据库中检索相关文档。通过对用户问题生成多种观点，
-        你的目标是帮助用户克服基于距离的相似性搜索的一些局限性。
-        以以下形式输出提问，
-        1：额外提问1，
-        2：额外提问2，
-        3：额外提问3，
-        原本的用户提问： {question}""",
-    )
 
     # 加载自定义 LLM
     llm = InternLM_LLM(model,tokenizer)
 
-    llm_chain = LLMChain(llm=llm, prompt=QUERY_PROMPT, output_parser=output_parser)
-
-    multi_retriever = MultiQueryRetriever(retriever=ensemble_retriever, llm_chain=llm_chain,include_original=True)
 
     # 定义一个 Prompt Template
     template = """使用以下上下文来回答最后的问题。如果你不知道答案，就说你不知道，不要试图编造答
-    案。请提供详细而清晰的回答。确保回答涵盖相关法规和实际技能，尽量详细回答问题，并尽量避免简单带过问题。总是在回答的最后说“谢谢你的提问！”。
+    案。请提供详细而清晰的回答。确保回答涵盖相关法规和实际技能，尽量使答案简明扼要。总是在回答的最后说“谢谢你的提问！”。
     {context}
     问题: {question}
     有用的回答:"""
@@ -112,7 +102,7 @@ def load_chain(model,tokenizer):
     QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     # 运行 chain
-    qa_chain = RetrievalQA.from_chain_type(llm, retriever=multi_retriever, return_source_documents=True,
+    qa_chain = RetrievalQA.from_chain_type(llm, retriever=ensemble_retriever, return_source_documents=True,
                                            chain_type_kwargs={"prompt": QA_CHAIN_PROMPT})
 
     return qa_chain
@@ -125,11 +115,11 @@ def on_btn_click():
 @st.cache_resource
 def load_model():
     model = (
-        AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
+        AutoModelForCausalLM.from_pretrained("/root/traffic_assistant_rag/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
         .to(torch.bfloat16)
         .cuda()
     )
-    tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/Shanghai_AI_Laboratory/internlm2-chat-7b", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("/root/traffic_assistant_rag/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
     return model, tokenizer
 
 
@@ -147,24 +137,28 @@ def prepare_generation_config():
     return generation_config,enable_rag
 
 
-user_prompt = "<|User|>:{user}\n"
-robot_prompt = "<|Bot|>:{robot}<eoa>\n"
-cur_query_prompt = "<|User|>:{user}<eoh>\n<|Bot|>:"
+user_prompt = '<|im_start|>user\n{user}<|im_end|>\n'
+robot_prompt = '<|im_start|>assistant\n{robot}<|im_end|>\n'
+cur_query_prompt = '<|im_start|>user\n{user}<|im_end|>\n\
+    <|im_start|>assistant\n'
 
 
 def combine_history(prompt):
     messages = st.session_state.messages
-    total_prompt = ""
+    meta_instruction = ('You are InternLM (书生·浦语), a helpful, honest, '
+                        'and harmless AI assistant developed by Shanghai '
+                        'AI Laboratory (上海人工智能实验室).')
+    total_prompt = f"<s><|im_start|>system\n{meta_instruction}<|im_end|>\n"
     for message in messages:
-        cur_content = message["content"]
-        if message["role"] == "user":
-            cur_prompt = user_prompt.replace("{user}", cur_content)
-        elif message["role"] == "robot":
-            cur_prompt = robot_prompt.replace("{robot}", cur_content)
+        cur_content = message['content']
+        if message['role'] == 'user':
+            cur_prompt = user_prompt.format(user=cur_content)
+        elif message['role'] == 'robot':
+            cur_prompt = robot_prompt.format(robot=cur_content)
         else:
             raise RuntimeError
         total_prompt += cur_prompt
-    total_prompt = total_prompt + cur_query_prompt.replace("{user}", prompt)
+    total_prompt = total_prompt + cur_query_prompt.format(user=prompt)
     return total_prompt
 
 
@@ -175,8 +169,8 @@ def main():
     qa_chain=load_chain(model, tokenizer)
     print("load model end.")
 
-    user_avator = "/home/xlab-app-center/imgs/user.png"
-    robot_avator = "/home/xlab-app-center/imgs/robot.png"
+    user_avator = "./imgs/user.png"
+    robot_avator = "./imgs/robot.png"
 
     st.title("traffic-assistant")
 
