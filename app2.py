@@ -110,11 +110,7 @@ def combine_history(prompt):
 def main():
     # torch.cuda.empty_cache()
     print("load model begin.")
-      model = (
-      AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
-      .to(torch.bfloat16)
-      .cuda()
-              )
+    model = (AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True).to(torch.bfloat16).cuda())
     tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
 
 
