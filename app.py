@@ -6,16 +6,19 @@ Please refer to these links below for more information:
     2. chatglm2: https://github.com/THUDM/ChatGLM2-6B
     3. transformers: https://github.com/huggingface/transformers
 """
+
 __import__('pysqlite3')
 import sys
 
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 from dataclasses import asdict
 
 import streamlit as st
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+# from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import logging
+import logging as lg
 from langchain.llms.base import LLM
 from typing import Any, List, Optional
 from langchain.callbacks.manager import CallbackManagerForLLMRun
@@ -28,38 +31,42 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.chains import LLMChain
 from langchain.vectorstores import Chroma
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from lmdeploy import turbomind as tm
 
 logger = logging.get_logger(__name__)
 
 
 
 class InternLM_LLM(LLM):
-    tokenizer: AutoTokenizer = None
-    model: AutoModelForCausalLM = None
-    def __init__(self,model,tokenizer):
+    tm_model:None= None
+    generator:None = None
+    def __init__(self,tm_model,generator):
         # model_path: InternLM 模型路径
         # 从本地初始化模型
         super().__init__()
-        self.tokenizer=tokenizer
-        self.model=model
-        self.model = self.model.eval()
+        self.tm_model=tm_model
+        self.generator=generator
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None,
               run_manager: Optional[CallbackManagerForLLMRun] = None,
               **kwargs: Any):
         # 重写调用函数
-        system_prompt = """你是交通法则小助手，熟知中华人民共和国公安部令和国务院令的交通法规知识，以及详尽的道路驾驶技能和安全文明常识考试内容。
-        """
 
-        messages = [(system_prompt, '')]
-        response, history = self.model.chat(self.tokenizer, prompt, history=messages)
+        prompt_t = self.tm_model.model.get_prompt(prompt)        
+        input_ids = self.tm_model.tokenizer.encode(prompt_t)
+        for outputs in self.generator.stream_infer(session_id=0,input_ids=[input_ids]):            
+            response = self.tm_model.tokenizer.decode(outputs[1])            
         return response
+        # for outputs in self.generator.stream_infer(session_id=0,input_ids=[input_ids]):
+        #     res, tokens = outputs[0]
+        # response = self.tm_model.tokenizer.decode(res.tolist())
+        # return response
 
     @property
     def _llm_type(self) -> str:
         return "InternLM"
 
-def load_chain(model,tokenizer):
+def load_chain(tm_model,generator):
     # 加载问答链
     # 定义 Embeddings
     embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
@@ -89,11 +96,8 @@ def load_chain(model,tokenizer):
     ensemble_retriever = EnsembleRetriever(retrievers=[bm25_retriever, retriever_chroma],
                                        weights=[0.4, 0.6])
     
-
-
     # 加载自定义 LLM
-    llm = InternLM_LLM(model,tokenizer)
-
+    llm = InternLM_LLM(tm_model,generator)
 
     # 定义一个 Prompt Template
     template = """使用以下上下文来回答最后的问题。如果你不知道答案，就说你不知道，不要试图编造答
@@ -117,27 +121,23 @@ def on_btn_click():
 
 @st.cache_resource
 def load_model():
-    model = (
-        AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
-        .to(torch.bfloat16)
-        .cuda()
-    )
-    tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
-    return model, tokenizer
+    tm_model = tm.TurboMind.from_pretrained(pretrained_model_name_or_path="/home/xlab-app-center/model/heitao5200/TRLLM-Model-4bit_turbomind/workspace_trll2_model_4bit_turbomind",trust_remote_code=True)
+    generator = tm_model.create_instance()
+    return tm_model, generator
 
 
 def prepare_generation_config():
     with st.sidebar:
-        max_length = st.slider("Max Length", min_value=32, max_value=2048, value=2048)
-        top_p = st.slider("Top P", 0.0, 1.0, 0.8, step=0.01)
-        temperature = st.slider("Temperature", 0.0, 1.0, 0.7, step=0.01)
+        # max_length = st.slider("Max Length", min_value=32, max_value=2048, value=2048)
+        # top_p = st.slider("Top P", 0.0, 1.0, 0.8, step=0.01)
+        # temperature = st.slider("Temperature", 0.0, 1.0, 0.7, step=0.01)
         st.button("Clear Chat History", on_click=on_btn_click)
         enable_rag=st.checkbox('RAG检索')
         
 
-    generation_config = GenerationConfig(max_length=max_length, top_p=top_p, temperature=temperature,repetition_penalty=1.002)
+    # generation_config = GenerationConfig(max_length=max_length, top_p=top_p, temperature=temperature,repetition_penalty=1.002)
 
-    return generation_config,enable_rag
+    return enable_rag
 
 
 user_prompt = '<|im_start|>user\n{user}<|im_end|>\n'
@@ -164,20 +164,19 @@ def combine_history(prompt):
     total_prompt = total_prompt + cur_query_prompt.format(user=prompt)
     return total_prompt
 
-
 def main():
     # torch.cuda.empty_cache()
     print("load model begin.")
-    model, tokenizer = load_model()
-    qa_chain=load_chain(model, tokenizer)
+    tm_model, generator = load_model()
+    qa_chain=load_chain(tm_model, generator)
     print("load model end.")
 
     user_avator = "./imgs/user.png"
     robot_avator = "./imgs/robot.png"
 
-    st.title("TRLLM-v2-交通规则助手大语言模型")
+    st.title("traffic-assistant")
 
-    generation_config,enable_rag = prepare_generation_config()
+    enable_rag = prepare_generation_config()
 
     # enable_rag=st.checkbox('RAG检索')
 
@@ -207,13 +206,10 @@ def main():
         else:
             with st.chat_message("robot", avatar=robot_avator):
                 message_placeholder = st.empty()
-                for cur_response in generate_interactive(
-                    model=model,
-                    tokenizer=tokenizer,
-                    prompt=real_prompt,
-                    additional_eos_token_id=92542,
-                    **asdict(generation_config),
-                ):
+                tm_prompt = tm_model.model.get_prompt(prompt)
+                input_ids = tm_model.tokenizer.encode(tm_prompt)
+                for outputs in generator.stream_infer(session_id=0,input_ids=[input_ids]): 
+                    cur_response = tm_model.tokenizer.decode(outputs[1])
                     # Display robot response in chat message container
                     message_placeholder.markdown(cur_response + "▌")
                 message_placeholder.markdown(cur_response)
