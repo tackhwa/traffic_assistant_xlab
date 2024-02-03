@@ -14,7 +14,7 @@ from dataclasses import asdict
 
 import streamlit as st
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from modelscope import AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import logging
 from typing import Any, List, Optional
 from tools.transformers.interface import GenerationConfig, generate_interactive
@@ -33,11 +33,11 @@ def on_btn_click():
 @st.cache_resource
 def load_model():
     model = (
-        AutoModelForCausalLM.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
+        AutoModelForCausalLM.from_pretrained("LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
         .to(torch.bfloat16)
         .cuda()
     )
-    tokenizer = AutoTokenizer.from_pretrained("/home/xlab-app-center/model/LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("LindseyChang/TRLLM-Model-v2", trust_remote_code=True)
     return model, tokenizer
 
 
