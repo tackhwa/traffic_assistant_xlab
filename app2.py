@@ -117,16 +117,16 @@ def main():
 
     embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
 
-    with open("/home/xlab-app-center/data_base/combine.txt") as f:
-        docs = f.read()
+    # with open("/home/xlab-app-center/data_base/combine.txt") as f:
+    #     docs = f.read()
 
-    text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=300)
+    # text_splitter = RecursiveCharacterTextSplitter(
+    # chunk_size=1000, chunk_overlap=300)
 
-    texts = text_splitter.create_documents([docs])
+    # texts = text_splitter.create_documents([docs])
 
-    bm25_retriever = BM25Retriever.from_documents(texts)
-    bm25_retriever.k =  2
+    # bm25_retriever = BM25Retriever.from_documents(texts)
+    # bm25_retriever.k =  2
 
     # 向量数据库持久化路径
     persist_directory = '/home/xlab-app-center/data_base/vector_db/rag_datasets'
@@ -139,8 +139,8 @@ def main():
 
     retriever_chroma=vectordb.as_retriever(search_kwargs={"k": 2})
 
-    ensemble_retriever = EnsembleRetriever(retrievers=[bm25_retriever, retriever_chroma],
-                                       weights=[0.4, 0.6])
+    # ensemble_retriever = EnsembleRetriever(retrievers=[bm25_retriever, retriever_chroma],
+    #                                    weights=[0.4, 0.6])
     
     # 加载自定义 LLM
     # llm = InternLM_LLM(model,tokenizer)
@@ -157,7 +157,7 @@ def main():
     QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     # 运行 chain
-    qa_chain = RetrievalQA.from_chain_type(llm, retriever=ensemble_retriever, return_source_documents=True,
+    qa_chain = RetrievalQA.from_chain_type(llm, retriever=retriever_chroma, return_source_documents=True,
                                            chain_type_kwargs={"prompt": QA_CHAIN_PROMPT})
     print("load model end.")
 
