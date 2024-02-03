@@ -61,7 +61,7 @@ class InternLM_LLM(LLM):
 def load_chain(model,tokenizer):
     # 加载问答链
     # 定义 Embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="/home/xlab-app-center/model/sentence-transformer")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 
     with open("/home/xlab-app-center/data_base/combine.txt") as f:
         docs = f.read()
